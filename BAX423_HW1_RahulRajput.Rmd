@@ -1,0 +1,267 @@
+---
+title: "BAX 423 HW 1 Rahul Rajput"
+author: "Rahul Rajput"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+EXERCISE 1
+
+QUESTION 1
+Part A
+```{r}
+game = readxl::read_excel('GameFun.xlsx')
+
+library(dplyr)
+
+game_test = game %>% filter(test==1)
+game_control = game %>% filter(test==0)
+
+df_averages = as.data.frame(t(c(mean(game_control$income), mean(game_control$gender), mean(game_control$gamer))))
+colnames(df_averages) = c('Avg Income', 'Avg Gender', 'Avg Gamer')                      
+df_averages = rbind(df_averages, c(mean(game_test$income), mean(game_test$gender), mean(game_test$gamer)))
+rownames(df_averages) = c('Control', 'Test')
+
+df_averages[3,] = abs(df_averages[2,] - df_averages[1,])/df_averages[1,] * 100
+df_averages
+
+t.test(game_control$income, game_test$income, var.equal=TRUE)
+
+prop.test(x = c(sum(game_control$gender==1), sum(game_test$gender==1)), n = c(nrow(game_control), nrow(game_test)),alternative = "two.sided")
+
+prop.test(x = c(sum(game_control$gamer==1), sum(game_test$gamer==1)), n = c(nrow(game_control), nrow(game_test)),alternative = "two.sided")
+
+```
+Part B
+From the above aggregate analyses we observe that the aggregate difference between the control and test populations are quite small which is confirmed by running 2 sample t-test and 2 sample proportion tests as well. The p-value for each test conducted was insignficant, supporting our null hypothesis that the test and control populations are similar.
+
+Part C
+If there had been a large difference between the test and control groups we would have to suspend the experiment. To ensure meaningful results the control and test populations must be as similar to each other as possible. Having populations which differ significantly would provide misleading results in the experiment.
+
+If we find that our populations do differ, we can start by checking the underlying data as well as the sampling process used to create these populations. Depending on the type of data we may need to re-sample from it or employ Bootstrapping. We may also consider sampling techniques such as matching to ensure equal representation across the populations. If neither of the above methods work we may then have to assign different weights to results fro the test and control groups.
+
+Part D
+Running statistical significance tests on data with a large number of samples creates a problem where even the smallest difference or even random noise can be flagged as significant, as the power of the test would be extremely high. In this case it would be ore prudent to use 'Effect Size' to decide whether a difference is significant or not. The Effect Size measures the absolute difference between the mean outcome of groups. A significant p-value just indicates the presence of an effect, but using the effect size is more appropriate to determine if that effect is significant. In fact, the test can be modified such that only results which are above a certain effect size are reported as significant.
+
+QUESTION 2
+```{r}
+#Part A
+sprintf("The Avg Purchase Rate for all Control: %f", sum(game_control$purchase)/nrow(game_control))
+sprintf("The Avg Purchase Rate for all Test: %f", sum(game_test$purchase)/nrow(game_test))
+sprintf("The Abs difference in rates is: %f", abs(sum(game_test$purchase)/nrow(game_test) - sum(game_control$purchase)/nrow(game_control)))
+
+#Part B
+male_control = mean(game_control$purchase[game_control$gender==0])
+female_control = mean(game_control$purchase[game_control$gender==1])
+male_test = mean(game_test$purchase[game_test$gender==0])
+female_test = mean(game_test$purchase[game_test$gender==1])
+
+sprintf("Avg Purchase Rate for Female Customers Control: %f", female_control)
+sprintf("Avg Purchase Rate for Male Customers Control: %f", male_control)
+
+sprintf("Avg Purchase Rate for Female Customers Test: %f", female_test)
+sprintf("Avg Purchase Rate for Male Customers Test: %f", male_test)
+
+sprintf("Abs Difference in Female Purchase Rates ControlvTest: %f", female_test - female_control)
+sprintf("Abs Difference in Male Purchase Rates ControlvTest: %f", male_test - male_control)
+
+# Part C
+nongamer_control = mean(game_control$purchase[game_control$gamer==0])
+gamer_control = mean(game_control$purchase[game_control$gamer==1])
+nongamer_test = mean(game_test$purchase[game_test$gamer==0])
+gamer_test = mean(game_test$purchase[game_test$gamer==1])
+
+sprintf("Avg Purchase Rate for Non Gamer Customers Control: %f", nongamer_control)
+sprintf("Avg Purchase Rate for Gamer Customers Control: %f", gamer_control)
+
+sprintf("Avg Purchase Rate for Non Gamer Customers Test: %f", nongamer_test)
+sprintf("Avg Purchase Rate for Gamer Customers Test: %f", gamer_test)
+
+sprintf("Abs Difference in Purchase Rates Gamers: %f", nongamer_test - nongamer_control)
+sprintf("Abs Difference in Purchase Rates NonGamers: %f", gamer_test - gamer_control)
+
+# Part D
+FemaleGamer_control = mean(game_control$purchase[game_control$gamer==1 & game_control$gender==0])
+MaleGamer_control = mean(game_control$purchase[game_control$gamer==1 & game_control$gender==1])
+FemaleGamer_test = mean(game_test$purchase[game_test$gamer==1 & game_control$gender==0])
+MaleGamer_test = mean(game_test$purchase[game_test$gamer==1 & game_control$gender==1])
+
+sprintf("The Avg Purchase rate for Female Gamers Control is: %f",FemaleGamer_control)
+sprintf("The Avg Purchase rate for Male Gamers Control is: %f",MaleGamer_control)
+
+sprintf("The Avg Purchase rate for Female Gamers Test is: %f",FemaleGamer_test)
+sprintf("The Avg Purchase rate for Male Gamers Test is: %f",MaleGamer_test)
+
+sprintf("The Difference b/w Male Gamers Purchase rate TestvControl is: %f",MaleGamer_test - MaleGamer_control)
+sprintf("The Difference b/w Feale GamersPurchase rate TestvControl is: %f",FemaleGamer_test - FemaleGamer_control)
+```
+
+QUESTION 3
+```{r}
+#Based on historical data, a new customer subscription brings a revenue of $37.5 on average. This results in a net inflow of $12.5 after the $25 credit for the users acquired through this promotion.
+
+# Part A
+ControlRevenue = sum(game_control$purchase==1)*37.5/nrow(game_control)
+TestRevenue = sum(game_test$purchase==1)*12.5/nrow(game_test)
+
+sprintf("The Difference in Revenue/Cust for All Customers TestvControl is: %f",(TestRevenue - ControlRevenue))
+
+# Part B
+FemaleGamerRevenue_Control = mean(game_control$purchase[game_control$gamer==1 & game_control$gender==0])*37.5
+MaleGamerRevenue_Control = mean(game_control$purchase[game_control$gamer==1 & game_control$gender==1])*37.5
+
+FemaleGamerRevenue_Test = mean(game_test$purchase[game_test$gamer==1 & game_test$gender==0])*12.5
+MaleGamerRevenue_Test = mean(game_test$purchase[game_test$gamer==1 & game_test$gender==1])*12.5
+
+sprintf("The Difference in Revenue/Cust for MaleGamers TestVControl is: %f", MaleGamerRevenue_Test - MaleGamerRevenue_Control)
+sprintf("The Difference in Revenue/Cust for FemaleGamers TestVControl is: %f", FemaleGamerRevenue_Test - FemaleGamerRevenue_Control)
+```
+QUESTION 4
+
+The overall average revenue per customer gained by the firm is lower for the Test population than the Control population by 0.4 dollars. This would imply that the promotion campaign was not successful, however, this figure is skewed by different results for Males and Females. 
+Overall we see the revenue from Female Gamers increasing after running the promotion significantly by 0.17 dollars whereas the revenue from Male Gamers decreased by 0.13 dollars.
+
+The promotion would be successful if Game Fun targets the Female Population Segment, particularly the Female Gamer Segment.
+
+
+EXERCISE 2
+
+```{r}
+vitamin = read.csv("sommer_deger.csv")
+```
+QUESTION 1
+```{r}
+vitamin_offered = vitamin %>% filter(instrument==1)
+vitamin_notoffered = vitamin %>% filter(instrument==0)
+
+#Part A
+mortality_offered = sum(vitamin_offered$outcome==1)/nrow(vitamin_offered)*100
+sprintf("Percentage of of babies whose mothers were offered Vitamin A shots for their babies died is: %f", mortality_offered)
+
+# Part B
+mortality_notoffered = sum(vitamin_notoffered$outcome==1)/nrow(vitamin_notoffered)*100
+sprintf("Percentage of of babies whose mothers were not offered Vitamin A shots for their babies died is: %f", mortality_notoffered)
+
+#Part C
+sprintf("The difference in Mortality rates of babies for mothers who were offered Vit A and mothers who were not offered is: %f",(mortality_offered - mortality_notoffered))
+
+sprintf("We see that the Mortality rates for babies whose Mothers who were offered Vitamin A is lower than those whose mothers were not offered.")
+
+sprintf("This number can be considered causal as it technically preserves randomisation, but this would only give the effect of the assignment but not the effect of treatment")
+
+sprintf("This number can only be considered a causal outcome if and only if the the mothers who were offered Vitamin A and then whether their babies received the shot or not was random, however that was not the case as the mothers self-selected into the treatment, breaking randomisation")
+```
+QUESTION 2
+```{r}
+treatment = vitamin %>% filter(treatment==1)
+notreatment = vitamin %>% filter(treatment==0)
+
+#Part A
+mortality_offered2 = sum(treatment$outcome==1)/nrow(treatment)*100
+sprintf("Percentage of of babies who received Vitamin A shots for their babies died is: %f", mortality_offered2)
+
+# Part B
+mortality_notoffered2 = sum(notreatment$outcome==1)/nrow(notreatment)*100
+sprintf("Percentage of of babies who did not receive Vitamin A shots for their babies died is: %f", mortality_notoffered2)
+
+# Part C
+sprintf("The difference in Mortality rates for babies who received Vit A and those who did not is: %f",mortality_offered2 - mortality_notoffered2)
+
+# Intention to Treat
+sprintf("This number can only be considered a causal outcome if and only if the the mothers who were offered Vitamin A and then whether their babies received the shot or not was random, however that was not the case as the mothers self-selected into the treatment, breaking randomisation. Babies who received the shots needs to be randomised.")
+
+sprintf("Effectiveness: the effect of a treatment work in practice")
+sprintf("Efficacy: the effect of a treatment in ideal situations")
+sprintf("Essentially this method would allow us to test the Effectiveness of the treatment but not the Efficacy.")
+```
+
+QUESTION 3
+```{r}
+#vitamin_offered
+treated = vitamin_offered %>% filter(treatment==1)
+not_treated = vitamin_offered %>% filter(treatment==0)
+
+# Part A
+mortality_offered3 = sum(treated$outcome==1)/nrow(treated)*100
+sprintf("Percentage of of babies whose mothers were offered Vitamin A shots and their babies received shots died is: %f", mortality_offered3)
+
+# Part B
+mortality_notoffered3 = sum(not_treated$outcome==0)/nrow(not_treated)*100
+sprintf("Percentage of of babies whose mothers were offered Vitamin A shots but their babies did not receive shots died is: %f", mortality_notoffered3)
+
+#Part C
+sprintf("The difference in Mortality rates is: %f",mortality_offered3 - mortality_notoffered3)
+
+sprintf("The difference in Mortality rates is very big between babies who received the shot and those who did not, where each baby's mother was given the Vitamin A shot.")
+
+sprintf("Similarly to the case above, this number can only be considered a causal outcome if and only if the the mothers who were offered Vitamin A and then whether their babies received the shot or not was random, however that was not the case as the mothers self-selected into the treatment, breaking randomisation. Babies who received the shots needs to be randomised.")
+```
+
+QUESTION 4
+```{r}
+# Part A
+wald = (mortality_offered - mortality_notoffered)/(sum(vitamin_offered$treatment==1)/nrow(vitamin_offered))
+sprintf("The Wald estimate is: %f",wald)
+
+# Part B
+sprintf("The only people for whom we can estimate treatment effect for are Compliers, those who were assigned treatment and gave it and vice versa. Basically, Complier Average Causal Effect (CACE) = E(Y(1) – Y(0)|compliers)|Compliers. Similarly, we can define Never-taker Average Causal Effect: NACE= E(Y(1) – Y(0)|never-takers)")
+
+sprintf("This approach is essentially an Instrumental Variable approach because we are using the initial random assignment 'Z' to predict the treatment effect for the actual variable, babies who actually received the shots, 'W' on the outcome 'Y'. In this case we can  identify the causal effect of the treatment for the complier subpopulation, which consists of individuals who would take the treatment if assigned to it and would not take the treatment if not assigned to it.")
+
+sprintf("The IV approach relies on several key assumptions, including the relevance of the instrument (the instrument is related to the treatment), the exclusion restriction (the instrument only affects the outcome through the treatment), and the monotonicity assumption (no defiers in the population). If these assumptions hold, the IV approach can provide consistent estimates of the causal effect of the treatment on the outcome.")
+
+sprintf("Exclusion Restriction (ER) for never-takers states that there is no causal effect of treatment assignment Z on the outcome Y for never-takers, meaning that NACE is equal to 0. This is because never-takers do not receive the treatment regardless of their assignment, so the assignment itself should not directly affect their outcomes.")
+
+# Part C
+# Q1: Y=1|Z=1 vs Y=1|Z=0 = ITTy
+# Q4: (Y=1|Z=1 - Y=1|Z=0) = ITTw, this is the compliance rate
+
+# Calculating error for ITTy
+se_treatment = sqrt(var(vitamin_offered$outcome) / nrow(vitamin_offered))
+se_control = sqrt(var(vitamin_notoffered$outcome) / nrow(vitamin_notoffered))
+
+se_itt = sqrt(se_treatment^2 + se_control^2)
+se_itt
+
+# Calculate the standard error for the Wald estimate
+proportion_treated = sum(vitamin_offered$treatment == 1)/nrow(vitamin_offered)
+proportion_not_treated = 1 - proportion_treated
+
+se_wald <- sqrt((se_treatment^2/(proportion_treated^2)) + (se_control^2/(proportion_not_treated^2)))
+se_wald
+
+```
+The ITT effect can be a biased estimate of the causal effect of the treatment when there is non-compliance, since it includes both compliers and non-compliers in the analysis. The CACE, however, aims to account for non-compliance and provide an unbiased estimate of the causal effect specifically for the compliers. The Wald estimator is one way to estimate the CACE under certain assumptions.
+
+The error for the Wald estimator was larger than the estimate for the Intent to Treat error. Mathematically this is beacuse the wald estimate is equal to ITTy/ITTw or the Intent to Treat effect on Y vs the Intent to Treat effect on w. Since ITTw will always be >= 0 AND <= 1, the error for the Wald Estimate was larger.
+
+ITTy measures the difference in the average outcome (mortality rate) between the group offered treatment (instrument = 1) and the group not offered treatment (instrument = 0). This difference includes the effect of the treatment and any bias due to non-compliance. ITTw measures the difference in the average treatment rate (compliance rate) between the group offered treatment (instrument = 1) and the group not offered treatment (instrument = 0). This rate captures the exogenous variation in treatment due to the random assignment of the instrument (offering shots), which helps isolate the causal effect of treatment on the outcome. The Wald estimator uses the ratio of ITTy to ITTw to calculate the CACE. This ratio can be thought of as scaling the observed treatment effect (ITTy) by the compliance rate (ITTw). By doing so, the Wald estimator isolates the variation in treatment that is solely due to the random assignment of the instrument, effectively accounting for potential self-selection and other confounding factors.
+
+We would want to know that which people among the control would be Compliers and Non Compliers to get a direct estimate of the Treatment Effect for the complier group without relying on the Wald Estimator.
+
+
+Source: https://www2.stat.duke.edu/courses/Spring14/sta320.01/IV_noncompliance.pdf"
+
+EXERCISE 3
+
+The design versus the analysis of observational studies for causal effects: Parallels with the design of randomized trials, Rubin
+
+In this paper Rubin focuses upon the how to design observational studies for causal inference. The paper starts with a recognition that even though randomised experiments have been long considered the 'Gold Standard' for causal inference, it is not always possible to design and execute perfect experiments. In such cases, it is argued, well designed observational studies can be used to provide better causal results.
+
+Understanding the assignment mechanism becomes extremely important for Observational Studies. Assignment Mechanism is the model for predicting whether a unit received treatment or not. Understanding the assignment mechanism in Observational studies is hard and more complex than in randomized experiments because the treatment assignment is not random and can be influenced by factors that are related to the potential outcomes. This situation can lead to confounding biases, which occur when there is a common cause or factor that influences both the treatment assignment and the outcome.
+
+For example, suppose that individuals with higher motivation levels are more likely to participate in the job training program and also more likely to have higher income levels regardless of the training. In this case, motivation is a confounding variable, as it affects both the treatment assignment (participating in the job training program) and the potential outcomes (income levels). When confounding variables are present, the estimated causal effect of the treatment may be biased because the differences in outcomes between the treatment and control groups can be attributed to the confounding variables rather than the treatment itself. 
+
+Methods like propensity score matching or regression adjustment can be used to control for the observed confounding variables. However, it's important to note that these methods can only account for the confounding biases caused by observed variables. If there are unobserved confounding variables, the estimated causal effect may still be biased.
+
+An interesting statement in the paper is "An observational study should be conceptualized as a broken randomized experiment." This is explained as "we view the observed data as having arisen from a hypothetical complex randomized experiment with a lost rule for the propensity scores, whose values we will try to reconstruct."
+
+A key issue raised in the paper is the use of 'Observed Outcome' in many studies to try and build a predictive model. This goes against the science of Causal Inference as we are now trying to fit models which would explain outcomes. A tru causal study must be designed without considering the outcome variable at all. However, especially with such a vast amount of information available in the world today, it would be incredibly hard for someone designing a study to be completely unaware of the expected observed outcomes. Usually people have some estimate on what to expect which can subconsciously bias the study design. This is also highlighted in the VAA study example mentioned in the paper wherein the matching is done and cross checked by people of opposing views, likely to ensure that some people's expected outcomes are countered by other's opinions and ensure a more fair design of the study.
+
+The paper emphasises on how methods such as propensity scores and matching/blocking can be used to build observational studies. "Very important for design is the fact that two subgroups of units, one treated and one control, with the same distribution of propensity scores have the same distribution of all measured covariates entering the assignment mechanism. Therefore, we should try to design an observational study such that there are subgroups of treated and control units with the same distributions of propensity scores, and this should be done without ever looking at any outcome data, and thus without looking at any answers about causal effects. Because the propensity score must be estimated, diagnostic analyses assessing the resulting balance of covariate distributions are essential."
